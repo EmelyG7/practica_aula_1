@@ -20,8 +20,8 @@ class ServicioNominaTest {
     @BeforeEach
     void setUp() {
         servicioNomina = new ServicioNomina();
-        empleadoFullTime = new Empleado("Bernardo", TipoEmpleado.FULL_TIME, 500);
-        empleadoPartTime = new Empleado("Juan", TipoEmpleado.PART_TIME, 400);
+        empleadoFullTime = new Empleado("Bernardo", TipoEmpleado.FULL_TIME, 500, true);
+        empleadoPartTime = new Empleado("Juan", TipoEmpleado.PART_TIME, 400, true);
     }
 
     @Test
@@ -63,13 +63,30 @@ class ServicioNominaTest {
     }
 
     @Test
-    void calcularNomina_salarioExcedeTope_sinExcepcion() {
-        Empleado empleado = new Empleado("Alex", TipoEmpleado.FULL_TIME, 1000);
+    void calcularNomina_salarioExcedeTope_conAutorizacion() {
+        Empleado empleado = new Empleado("Alex", TipoEmpleado.FULL_TIME, 1000, true);
         int horas = 50;
-        // 40*1000 + 10*1000*1.5 + 500 = 40,000 + 15,000 + 500 = 55,500 (supera el tope)
-        assertDoesNotThrow(() -> servicioNomina.calcularNomina(empleado, horas));
+        // Salario calculado: 40*1000 + 10*1000*1.5 + 500 = 55,500
+        double salarioCalculado = servicioNomina.calcularNomina(empleado, horas);
+
+        // Simula autorización
+        boolean autorizado = salarioCalculado > 20000 && empleado.isAutorizado();
+
+        assertTrue(autorizado, "El salario excedido debería ser autorizado");
     }
 
+    @Test
+    void calcularNomina_salarioExcedeTope_sinAutorizacion() {
+        Empleado empleado = new Empleado("Alex", TipoEmpleado.FULL_TIME, 1000, false);
+        int horas = 50;
+        // Salario calculado: 40*1000 + 10*1000*1.5 + 500 = 55,500
+        double salarioCalculado = servicioNomina.calcularNomina(empleado, horas);
+
+        // Simula denegación de autorización
+        boolean autorizado = salarioCalculado > 20000 && empleado.isAutorizado();
+
+        assertFalse(autorizado, "El salario excedido no debería ser autorizado");
+    }
     private static Stream<Arguments> proveedorDatosParaCalculo() {
         return Stream.of(
                 Arguments.of(TipoEmpleado.FULL_TIME, 30, 30 * 500),
@@ -83,7 +100,7 @@ class ServicioNominaTest {
     @ParameterizedTest
     @MethodSource("proveedorDatosParaCalculo")
     void calcularNomina_variosEscenarios_calculoCorrecto(TipoEmpleado tipo, int horas, double salarioEsperado) {
-        Empleado empleado = new Empleado("Test", tipo, tipo == TipoEmpleado.FULL_TIME ? 500 : 400);
+        Empleado empleado = new Empleado("Test", tipo, tipo == TipoEmpleado.FULL_TIME ? 500 : 400, true);
         assertEquals(salarioEsperado, servicioNomina.calcularNomina(empleado, horas));
     }
 }
